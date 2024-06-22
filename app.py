@@ -69,6 +69,7 @@ class Teatr:
         zapytanie = "SELECT * FROM listamiejsc where dostepne = 1;"
         cursor.execute(zapytanie)
         dane = cursor.fetchall()
+        self.listaMiejsc = []
         for row in dane:
             if row[5] == "zwykłe":
                 self.listaMiejsc.append(MiejsceZwykle(row[0], row[1], row[2]))
@@ -87,8 +88,7 @@ class Teatr:
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
         if not dane:
-            print(f"Wybrane miejsce nr {numerMiejsca} jest niedostępne lub nie ma go na liście miejsc.")
-            return False
+            return f"Wybrane miejsce nr {numerMiejsca} jest niedostępne lub nie ma go na liście miejsc."
         else:
             zapytanie = "update listamiejsc set dostepne = 0 where numer=%s and dostepne = 1;"
             cursor.execute(zapytanie, parametry)
@@ -96,9 +96,10 @@ class Teatr:
             zapytanieRezerwacja = "insert into rezerwacje values (%s,%s,%s,%s,%s,%s,%s);"
             cursor.execute(zapytanieRezerwacja, parametryRezerwacji)
             connect.commit()
-            print(f"Zarezerwowano miejsce nr {numerMiejsca}")
+            info = f"Zarezerwowano miejsce nr {numerMiejsca}"
+            return f"Zarezerwowano miejsce nr {numerMiejsca}"
 
-    def anulowanieRezerwacji(self, rezerwacja, miejsce):
+    def anulowanieRezerwacji(self, miejsce):
         connectToDatabase()
         parametry = (miejsce,)
         zapytanie = "SELECT * FROM listamiejsc where numer=%s and dostepne = 0;"
@@ -110,11 +111,11 @@ class Teatr:
         else:
             zapytanie = "update listamiejsc set dostepne = 1 where numer=%s and dostepne = 0;"
             cursor.execute(zapytanie, parametry)
-            parametryRezerwacji = (rezerwacja, miejsce)
-            zapytanieRezerwacja = "update rezerwacje set status = 'anulowana', dataAktualizacji=CURRENT_TIMESTAMP where idRezerwacji=%s and numerMiejsca=%s"
+            parametryRezerwacji = (miejsce,)
+            zapytanieRezerwacja = "update rezerwacje set status = 'anulowana', dataAktualizacji=CURRENT_TIMESTAMP where numerMiejsca=%s"
             cursor.execute(zapytanieRezerwacja, parametryRezerwacji)
             connect.commit()
-            print(f"Anulowano rezerwację nr {rezerwacja} - miejsce nr {miejsce}.")
+            print(f"Anulowano rezerwację - miejsce nr {miejsce}.")
 
     def historiaRezerwacji(self, klient):
         connectToDatabase()
@@ -122,10 +123,12 @@ class Teatr:
         zapytanie = "SELECT * FROM rezerwacje where idKlienta = %s;"
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
+        self.rezerwacje = []
         for row in dane:
             self.rezerwacje.append(f"Id rezerwacji {row[0]}, zarezerwowane miejsce nr {row[5]}, data rezerwacji {row[1]}, data aktualizacji rezerwacji {row[2]}, status rezerwacji: {row[3]}")
         for rezerwacja in self.rezerwacje:
             print(rezerwacja)
+        return self.rezerwacje
 
 
 class Klient:
@@ -135,10 +138,10 @@ class Klient:
         self.Nazwisko = Nazwisko
 
     def __str__(self):
-        return f"{self.Id} {self.Imie} {self.Nazwisko}"
+        return f"Id klienta: {self.Id}, Imię: {self.Imie}, Nazwisko: {self.Nazwisko}"
 
     @staticmethod
-    def utworzKlienta(self, Id, Imie, Nazwisko):
+    def utworzKlienta(Id, Imie, Nazwisko):
         connectToDatabase()
         parametry = (Id, Imie, Nazwisko)
         zapytanie = "insert into listaklientow values(%s,%s,%s);"
@@ -152,11 +155,13 @@ class Klient:
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
         if not dane:
-            Klient.utworzKlienta(None, None, imie, nazwisko)
+            Klient.utworzKlienta(None, imie, nazwisko)
         zapytanie = "select * FROM listaklientow where imie=%s and nazwisko=%s;"
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
-        aktualnyKlient = dane[0]
+        id,imie,nazwisko = dane[0]
+        global aktualnyKlient
+        aktualnyKlient = Klient(id,imie,nazwisko)
         return aktualnyKlient
 
 
@@ -179,23 +184,85 @@ labelUserLastName.pack(pady=10)
 userLastNameEntry = tkinter.Entry(root)
 userLastNameEntry.pack()
 
-givenName = str(userNameEntry.get())
-givenLastName = str(userLastNameEntry.get())
+def hide1():
+    labelUserName.pack_forget()
+    userNameEntry.pack_forget()
+    labelUserLastName.pack_forget()
+    userLastNameEntry.pack_forget()
+    klientButton.pack_forget()
 
+def poLogowaniu():
+    miejscaButton.pack(pady=20)
+    labelMiejsce.pack()
+    miejsceEntry.pack()
+    rezerwujButton.pack(pady=20)
+    historiaButton.pack(pady=30)
+    labelMiejsceAnulowanie.pack()
+    miejsceAnulowanieEntry.pack()
+    anulujButton.pack(pady=20)
 
 def pobierzDane():
+    # pobieranie informacji o uzytkowniku
     givenName = str(userNameEntry.get())
     givenLastName = str(userLastNameEntry.get())
     Klient.obslugaKlienta(givenName, givenLastName)
+    hide1()
     # wyświetlenie informacji o zalogowanym użytkowniku
-    #givenInfo = aktualnyKlient
-    givenInfo = "Imię: " + givenName + " Nazwisko: " + givenLastName + " Id: "
+    givenInfo = aktualnyKlient
     labelUserInfo = tkinter.Label(root, text=givenInfo)
     labelUserInfo.pack()
+    poLogowaniu()
+
+klientButton = tkinter.Button(root, text="Logowanie", command=pobierzDane)
+klientButton.pack()
+
+def pokazDostepneMiesjca():
+    teatr.dostepneMiejsca()
+    pokazListe = teatr.listaMiejsc
+    wydrukujListe = ""
+    for row in pokazListe:
+        wydrukujListe += (str(row)+ " " + "\n")
+    labelListaMiejsc = tkinter.Label(root, text=wydrukujListe)
+    labelTitleListaMiejsc = tkinter.Label(root, text="Lista dostępnych miejsc w teatrze")
+    labelTitleListaMiejsc.pack()
+    labelListaMiejsc.pack()
+
+miejscaButton = tkinter.Button(root, text="Pokaż dostępne miejsca", command=pokazDostepneMiesjca)
+
+#rezerwacja miejsc
+labelMiejsce = tkinter.Label(root, text="Podaj nr miejsca do rezerwacji")
+miejsceEntry = tkinter.Entry(root)
+
+def rezerwuj():
+    givenMiejsce = str(miejsceEntry.get())
+    teatr.zarezerwujMiejsce(givenMiejsce, aktualnyKlient.Id)
+
+rezerwujButton = tkinter.Button(root, text="Zarezerwuj wskazane miejsce", command=rezerwuj)
 
 
-zalogujButton = tkinter.Button(root, text="Logowanie", command=pobierzDane)
-zalogujButton.pack()
+#historia rezerwacji miejsc
+def historia():
+    teatr.historiaRezerwacji(aktualnyKlient.Id)
+    pokazRezerwacje = teatr.rezerwacje
+    wydrukujRezerwacje = ""
+    for row in pokazRezerwacje:
+        wydrukujRezerwacje += (str(row) + " " + "\n")
+    labelHistoria = tkinter.Label(root, text=wydrukujRezerwacje)
+    labelTitleHistoria = tkinter.Label(root, text="Lista rezerwacji")
+    labelTitleHistoria.pack()
+    labelHistoria.pack()
+
+historiaButton = tkinter.Button(root, text="Pokaż historię rezerwacji miejsc", command=historia)
+
+#anulowanie rezerwacji
+labelMiejsceAnulowanie = tkinter.Label(root, text="Podaj nr miejsca do anulowania")
+miejsceAnulowanieEntry = tkinter.Entry(root)
+
+def anuluj():
+    givenMiejsceAnulowanie = str(miejsceAnulowanieEntry.get())
+    teatr.anulowanieRezerwacji(givenMiejsceAnulowanie)
+
+anulujButton = tkinter.Button(root, text="Anulowanie rezerwacji", command=anuluj)
 
 #powtarzanie kodu w pętli
 root.mainloop()
@@ -215,4 +282,4 @@ teatr.zarezerwujMiejsce(12, 101)
 teatr.historiaRezerwacji(101)
 
 #Anulowanie rezerwacji
-teatr.anulowanieRezerwacji(73, 12)
+teatr.anulowanieRezerwacji(12)

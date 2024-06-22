@@ -28,9 +28,6 @@ class MiejsceZwykle(MiejsceTeatralne):
     def __str__(self):
         return f"Numer miejsca: {self.numer}, dostępność: {self.dostepne}, cena biletu: {self.cena}"
 
-    def listaParametrow(self):
-        return (self.numer,"zwykłe",self.dostepne,self.cena)
-
 # klasa VIP miejsca
 class MiejsceVIP(MiejsceTeatralne):
     def __init__(self,numer,dostepne,cena,dodatkowaOplata):
@@ -49,27 +46,11 @@ class MiejsceDlaNiepelnosprawnych(MiejsceTeatralne):
     def __str__(self):
         return f"Numer miejsca: {self.numer}, dostępność: {self.dostepne}, cena biletu: {self.cena}, udogodnienia:  {self.udogodnienia}"
 
-
 # klasa zarządzająca mijescami i rezerwacjami
 class Teatr:
     def __init__(self):
         self.listaMiejsc = []
-        self.rezerwacje = {}
-        #otworzyc plik -
-
-    def __str__(self):
-        return f"{self.listaMiejsc}"
-        #return f"{self.rezerwacje}"
-
-    def pokazListeMiejsc(self):
-        for miejsce in self.listaMiejsc:
-            print(miejsce)
-        return True
-
-    def pokazRezerwacje(self):
-        for rezerwacja in self.rezerwacje:
-            print(rezerwacja)
-        return True
+        self.rezerwacje = []
 
     def utworzMiejsce(self,parametry):
         connectToDatabase()
@@ -77,23 +58,20 @@ class Teatr:
         cursor.execute(zapytanie,parametry)
         connect.commit()
 
-
     def dostepneMiejsca(self):
         connectToDatabase()
         zapytanie = "SELECT * FROM listamiejsc where dostepne = 1;"
         cursor.execute(zapytanie)
         dane = cursor.fetchall()
-        for i in dane:
-            if i[5] == "zwykłe":
-                print (MiejsceZwykle(i[0], i[1], i[2]))
-                # print(f"m1: {m1}")
-            elif i[5] == "VIP":
-                print (MiejsceVIP(i[0], i[1], i[2], i[3]))
-                # print(f"m1: {m1}")
-            elif i[5] == "NP":
-                print (MiejsceVIP(i[0], i[1], i[2], i[4]))
-                # print(f"m1: {m1}")
-
+        for row in dane:
+            if row[5] == "zwykłe":
+                self.listaMiejsc.append(MiejsceZwykle(row[0], row[1], row[2]))
+            elif row[5] == "VIP":
+                self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[3]))
+            elif row[5] == "NP":
+                self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[4]))
+        for miejsce in self.listaMiejsc:
+            print(miejsce)
     def zarezerwujMiejsce(self,numerMiejsca,klient):
         connectToDatabase()
         parametry = (numerMiejsca,)
@@ -110,7 +88,6 @@ class Teatr:
             zapytanieRezerwacja = "insert into rezerwacje values (%s,%s,%s,%s,%s,%s,%s);"
             cursor.execute(zapytanieRezerwacja,parametryRezerwacji)
             connect.commit()
-            dane = cursor.fetchall()
             print(f"Zarezerwowano miejsce nr {numerMiejsca}")
 
     def anulowanieRezerwacji(self,rezerwacja,miejsce):
@@ -129,8 +106,7 @@ class Teatr:
             zapytanieRezerwacja = "update rezerwacje set status = 'anulowana', dataAktualizacji=CURRENT_TIMESTAMP where idRezerwacji=%s and numerMiejsca=%s"
             cursor.execute(zapytanieRezerwacja,parametryRezerwacji)
             connect.commit()
-            dane = cursor.fetchall()
-            #print(dane)
+            print(f"Anulowano rezerwację nr {rezerwacja} - miejsce nr {miejsce}.")
 
     def historiaRezerwacji(self,klient):
         connectToDatabase()
@@ -138,9 +114,10 @@ class Teatr:
         zapytanie = "SELECT * FROM rezerwacje where idKlienta = %s;"
         cursor.execute(zapytanie,parametry)
         dane = cursor.fetchall()
-        for i in dane:
-            print(f"Id rezerwacji {i[0]}, zarezerwowane miejsce nr {i[5]}, data rezerwacji {i[1]}, data aktualizacji rezerwacji {i[2]}, status rezerwacji: {i[3]}")
-
+        for row in dane:
+            self.rezerwacje.append((f"Id rezerwacji {row[0]}, zarezerwowane miejsce nr {row[5]}, data rezerwacji {row[1]}, data aktualizacji rezerwacji {row[2]}, status rezerwacji: {row[3]}"))
+        for rezerwacja in self.rezerwacje:
+            print(rezerwacja)
 class Klient:
     def __init__(self, Id, Imie, Nazwisko):
         self.Id = Id
@@ -157,7 +134,7 @@ class Klient:
         cursor.execute(zapytanie, parametry)
         connect.commit()
 
-def wyszukiwanieKlienta(imie,nazwisko):
+def obslugaKlienta(imie,nazwisko):
     connectToDatabase()
     parametry = (imie,nazwisko)
     zapytanie = "select * FROM listaklientow where imie=%s and nazwisko=%s;"
@@ -172,26 +149,22 @@ def wyszukiwanieKlienta(imie,nazwisko):
         aktualnyKlient = i[0]
         print(aktualnyKlient)
 
-
 #Tworzenie teatru
 teatr = Teatr()
 
 #Wyszukanie klienta/Utworzenie klienta
 print("Id klienta")
-wyszukiwanieKlienta("Anna","Kowalska")
+obslugaKlienta("Anna","Kow")
 
 #Pokazanie dostępnych miejsc
 print("Dostępne miejsca w teatrze")
 dostepneMiejsca = teatr.dostepneMiejsca()
 
 #Rezerwacja miejsca
-# teatr.zarezerwujMiejsce(12,101)
+teatr.zarezerwujMiejsce(12,101)
 
 #Historia rezerwacji
 teatr.historiaRezerwacji(101)
 
 #Anulowanie rezerwacji
-teatr.anulowanieRezerwacji(64,12)
-
-#Historia rezerwacji
-teatr.historiaRezerwacji(101)
+teatr.anulowanieRezerwacji(73,12)

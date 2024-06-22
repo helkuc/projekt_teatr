@@ -1,6 +1,9 @@
 import mysql
 import mysql.connector
 from datetime import datetime
+import tkinter
+from tkinter import messagebox
+from functools import partial
 
 #połączanie z bazą danych
 def connectToDatabase ():
@@ -98,17 +101,17 @@ class Teatr:
         cursor.execute(zapytanie,parametry)
         dane = cursor.fetchall()
         if not dane:
-            print ("Wybrane miejsce jest niedostępne.")
+            print (f"Wybrane miejsce nr {numerMiejsca} jest niedostępne lub nie ma go na liście miejsc.")
             return False
         else:
             zapytanie = "update listamiejsc set dostepne = 0 where numer=%s and dostepne = 1;"
             cursor.execute(zapytanie,parametry)
             parametryRezerwacji = (None,datetime.now(),datetime.now(),"aktualna",klient,numerMiejsca,None)
-            zapytanieRezerwacja = "insert into rezerwacje values (%s,%s,%s,%s,%s,%s);"
+            zapytanieRezerwacja = "insert into rezerwacje values (%s,%s,%s,%s,%s,%s,%s);"
             cursor.execute(zapytanieRezerwacja,parametryRezerwacji)
             connect.commit()
             dane = cursor.fetchall()
-            print(dane)
+            print(f"Zarezerwowano miejsce nr {numerMiejsca}")
 
     def anulowanieRezerwacji(self,rezerwacja,miejsce):
         connectToDatabase()
@@ -117,7 +120,7 @@ class Teatr:
         cursor.execute(zapytanie,parametry)
         dane = cursor.fetchall()
         if not dane:
-            print ("Wybrane miejsce nie jest zarezerwowane, nie można anulować rezerwacji.")
+            print (f"Wybrane miejsce nr {miejsce} nie jest zarezerwowane, nie można anulować rezerwacji.")
             return False
         else:
             zapytanie = "update listamiejsc set dostepne = 1 where numer=%s and dostepne = 0;"
@@ -127,7 +130,7 @@ class Teatr:
             cursor.execute(zapytanieRezerwacja,parametryRezerwacji)
             connect.commit()
             dane = cursor.fetchall()
-            print(dane)
+            #print(dane)
 
     def historiaRezerwacji(self,klient):
         connectToDatabase()
@@ -136,72 +139,59 @@ class Teatr:
         cursor.execute(zapytanie,parametry)
         dane = cursor.fetchall()
         for i in dane:
-            print(f"Id rezerwacji {i[0]}, zarezerwowane miejsce nr {i[4]}, data rezerwacji {i[1]}, data aktualizacji rezerwacji {i[2]}, status rezerwacji: {i[3]}")
+            print(f"Id rezerwacji {i[0]}, zarezerwowane miejsce nr {i[5]}, data rezerwacji {i[1]}, data aktualizacji rezerwacji {i[2]}, status rezerwacji: {i[3]}")
 
 class Klient:
     def __init__(self, Id, Imie, Nazwisko):
         self.Id = Id
         self.Imie = Imie
         self.Nazwisko = Nazwisko
-        parametry = (self.Id,self.Imie,self.Nazwisko)
-        connectToDatabase()
-        zapytanie = "insert into listaklientow values(%s,%s,%s);"
-        cursor.execute(zapytanie, parametry)
-        connect.commit()
 
     def __str__(self):
         return f"{self.Id} {self.Imie} {self.Nazwisko}"
 
-    def pokazParametry(self,id):
+    def utworzKlienta(self, Id, Imie, Nazwisko):
         connectToDatabase()
-        parametry = id
-        zapytanie = "select * FROM listaklientow where idKlienta=%s;"
+        parametry = (None, Imie, Nazwisko)
+        zapytanie = "insert into listaklientow values(%s,%s,%s);"
         cursor.execute(zapytanie, parametry)
-        dane = cursor.fetchall()
-        print(dane)
+        connect.commit()
+
+def wyszukiwanieKlienta(imie,nazwisko):
+    connectToDatabase()
+    parametry = (imie,nazwisko)
+    zapytanie = "select * FROM listaklientow where imie=%s and nazwisko=%s;"
+    cursor.execute(zapytanie, parametry)
+    dane = cursor.fetchall()
+    if not dane:
+        Klient.utworzKlienta(None, None, imie,nazwisko)
+    zapytanie = "select * FROM listaklientow where imie=%s and nazwisko=%s;"
+    cursor.execute(zapytanie, parametry)
+    dane = cursor.fetchall()
+    for i in dane:
+        aktualnyKlient = i[0]
+        print(aktualnyKlient)
 
 
 #Tworzenie teatru
 teatr = Teatr()
 
-#Dodanie miejsc w teatrze
-# teatr.utworzMiejsce(MiejsceZwykle(1,True,5))
-# teatr.utworzMiejsce(MiejsceVIP(2,False,5,20))
-# teatr.utworzMiejsce(MiejsceDlaNiepelnosprawnych(3,True,5,"Szerokie podejście,brak schodów"))
-miejsce1 = (None,True,30,None,None,"zwykłe")
-miejsce2 = (None,True,30,10,None,"VIP")
-miejsce3 = (None,True,30,None,"Szerokie podejście,brak schodów","NP")
-# teatr.utworzMiejsce(miejsce1)
-# teatr.utworzMiejsce(miejsce2)
-# teatr.utworzMiejsce(miejsce3)
-
-#Tworzenie klienta
-klient = Klient(None,"Anna","Kowalska")
-print(f"test {klient}")
-klient.pokazParametry([10])
+#Wyszukanie klienta/Utworzenie klienta
+print("Id klienta")
+wyszukiwanieKlienta("Anna","Kowalska")
 
 #Pokazanie dostępnych miejsc
+print("Dostępne miejsca w teatrze")
 dostepneMiejsca = teatr.dostepneMiejsca()
 
 #Rezerwacja miejsca
-teatr.zarezerwujMiejsce(127,10)
+# teatr.zarezerwujMiejsce(12,101)
 
-#Pokazanie dostępnych miejsc
-dostepneMiejsca = teatr.dostepneMiejsca()
-#
-# #Pokazanie dostępnych miejsc
-rezerwacjeLista = teatr.pokazRezerwacje()
+#Historia rezerwacji
+teatr.historiaRezerwacji(101)
 
-#Pokazanie wszystkich miejsc
-teatr.pokazListeMiejsc()
+#Anulowanie rezerwacji
+teatr.anulowanieRezerwacji(64,12)
 
-#Pokazanie wszystkich miejsc
-print(teatr.rezerwacje)
-print(teatr.pokazRezerwacje)
-
-#Wyświetlenie historii rezerwacji
-teatr.historiaRezerwacji((10))
-
-teatr.anulowanieRezerwacji(51,123)
-
-
+#Historia rezerwacji
+teatr.historiaRezerwacji(101)

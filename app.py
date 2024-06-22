@@ -2,8 +2,6 @@ import mysql
 import mysql.connector
 from datetime import datetime
 import tkinter
-from tkinter import messagebox
-from functools import partial
 
 
 #połączanie z bazą danych
@@ -147,6 +145,7 @@ class Klient:
         zapytanie = "insert into listaklientow values(%s,%s,%s);"
         cursor.execute(zapytanie, parametry)
         connect.commit()
+
     @staticmethod
     def obslugaKlienta(imie, nazwisko):
         connectToDatabase()
@@ -159,9 +158,9 @@ class Klient:
         zapytanie = "select * FROM listaklientow where imie=%s and nazwisko=%s;"
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
-        id,imie,nazwisko = dane[0]
+        id, imie, nazwisko = dane[0]
         global aktualnyKlient
-        aktualnyKlient = Klient(id,imie,nazwisko)
+        aktualnyKlient = Klient(id, imie, nazwisko)
         return aktualnyKlient
 
 
@@ -184,12 +183,14 @@ labelUserLastName.pack(pady=10)
 userLastNameEntry = tkinter.Entry(root)
 userLastNameEntry.pack()
 
+
 def hide1():
     labelUserName.pack_forget()
     userNameEntry.pack_forget()
     labelUserLastName.pack_forget()
     userLastNameEntry.pack_forget()
     klientButton.pack_forget()
+
 
 def poLogowaniu():
     miejscaButton.pack(pady=20)
@@ -200,6 +201,7 @@ def poLogowaniu():
     labelMiejsceAnulowanie.pack()
     miejsceAnulowanieEntry.pack()
     anulujButton.pack(pady=20)
+
 
 def pobierzDane():
     # pobieranie informacji o uzytkowniku
@@ -213,19 +215,22 @@ def pobierzDane():
     labelUserInfo.pack()
     poLogowaniu()
 
+
 klientButton = tkinter.Button(root, text="Logowanie", command=pobierzDane)
 klientButton.pack()
+
 
 def pokazDostepneMiesjca():
     teatr.dostepneMiejsca()
     pokazListe = teatr.listaMiejsc
     wydrukujListe = ""
     for row in pokazListe:
-        wydrukujListe += (str(row)+ " " + "\n")
+        wydrukujListe += (str(row) + " " + "\n")
     labelListaMiejsc = tkinter.Label(root, text=wydrukujListe)
     labelTitleListaMiejsc = tkinter.Label(root, text="Lista dostępnych miejsc w teatrze")
     labelTitleListaMiejsc.pack()
     labelListaMiejsc.pack()
+
 
 miejscaButton = tkinter.Button(root, text="Pokaż dostępne miejsca", command=pokazDostepneMiesjca)
 
@@ -236,6 +241,7 @@ miejsceEntry = tkinter.Entry(root)
 def rezerwuj():
     givenMiejsce = str(miejsceEntry.get())
     teatr.zarezerwujMiejsce(givenMiejsce, aktualnyKlient.Id)
+
 
 rezerwujButton = tkinter.Button(root, text="Zarezerwuj wskazane miejsce", command=rezerwuj)
 
@@ -252,15 +258,18 @@ def historia():
     labelTitleHistoria.pack()
     labelHistoria.pack()
 
+
 historiaButton = tkinter.Button(root, text="Pokaż historię rezerwacji miejsc", command=historia)
 
 #anulowanie rezerwacji
 labelMiejsceAnulowanie = tkinter.Label(root, text="Podaj nr miejsca do anulowania")
 miejsceAnulowanieEntry = tkinter.Entry(root)
 
+
 def anuluj():
     givenMiejsceAnulowanie = str(miejsceAnulowanieEntry.get())
     teatr.anulowanieRezerwacji(givenMiejsceAnulowanie)
+
 
 anulujButton = tkinter.Button(root, text="Anulowanie rezerwacji", command=anuluj)
 

@@ -2,11 +2,13 @@ import mysql
 import mysql.connector
 from datetime import datetime
 import tkinter
+from tkinter.scrolledtext import ScrolledText
+import tkinter.messagebox as messagebox
 
 
 #połączanie z bazą danych
 def connectToDatabase():
-    config = {"user": "root", "password": "Rozilka89!!!", "host": "localhost", "database": "teatr"}
+    config = {"user": "root", "password": "XXX", "host": "localhost", "database": "teatr"}
     global connect
     connect = mysql.connector.connect(**config)
     global cursor
@@ -75,8 +77,6 @@ class Teatr:
                 self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[3]))
             elif row[5] == "NP":
                 self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[4]))
-        for miejsce in self.listaMiejsc:
-            print(miejsce)
         return self.listaMiejsc
 
     def zarezerwujMiejsce(self, numerMiejsca, klient):
@@ -86,7 +86,8 @@ class Teatr:
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
         if not dane:
-            return f"Wybrane miejsce nr {numerMiejsca} jest niedostępne lub nie ma go na liście miejsc."
+            tkinter.messagebox.showinfo(title="Informacja o rezerwacji", message=f"Wybrane miejsce nr {numerMiejsca} jest niedostępne lub nie ma go na liście miejsc.")
+            return False
         else:
             zapytanie = "update listamiejsc set dostepne = 0 where numer=%s and dostepne = 1;"
             cursor.execute(zapytanie, parametry)
@@ -94,8 +95,8 @@ class Teatr:
             zapytanieRezerwacja = "insert into rezerwacje values (%s,%s,%s,%s,%s,%s,%s);"
             cursor.execute(zapytanieRezerwacja, parametryRezerwacji)
             connect.commit()
-            info = f"Zarezerwowano miejsce nr {numerMiejsca}"
-            return f"Zarezerwowano miejsce nr {numerMiejsca}"
+            tkinter.messagebox.showinfo(title="Informacja o rezerwacji", message=f"Zarezerwowano miejsce nr {numerMiejsca}")
+            return True
 
     def anulowanieRezerwacji(self, miejsce):
         connectToDatabase()
@@ -104,7 +105,8 @@ class Teatr:
         cursor.execute(zapytanie, parametry)
         dane = cursor.fetchall()
         if not dane:
-            print(f"Wybrane miejsce nr {miejsce} nie jest zarezerwowane, nie można anulować rezerwacji.")
+            tkinter.messagebox.showinfo(title="Informacja o anulowaniu rezerwacji",
+                                        message=f"Wybrane miejsce nr {miejsce} nie jest zarezerwowane, nie można anulować rezerwacji.")
             return False
         else:
             zapytanie = "update listamiejsc set dostepne = 1 where numer=%s and dostepne = 0;"
@@ -113,7 +115,9 @@ class Teatr:
             zapytanieRezerwacja = "update rezerwacje set status = 'anulowana', dataAktualizacji=CURRENT_TIMESTAMP where numerMiejsca=%s"
             cursor.execute(zapytanieRezerwacja, parametryRezerwacji)
             connect.commit()
-            print(f"Anulowano rezerwację - miejsce nr {miejsce}.")
+            tkinter.messagebox.showinfo(title="Informacja o anulowaniu rezerwacji",
+                                        message=f"Anulowano rezerwację - miejsce nr {miejsce}.")
+            return True
 
     def historiaRezerwacji(self, klient):
         connectToDatabase()
@@ -124,8 +128,6 @@ class Teatr:
         self.rezerwacje = []
         for row in dane:
             self.rezerwacje.append(f"Id rezerwacji {row[0]}, zarezerwowane miejsce nr {row[5]}, data rezerwacji {row[1]}, data aktualizacji rezerwacji {row[2]}, status rezerwacji: {row[3]}")
-        for rezerwacja in self.rezerwacje:
-            print(rezerwacja)
         return self.rezerwacje
 
 
@@ -138,7 +140,6 @@ class Klient:
     def __str__(self):
         return f"Id klienta: {self.Id}, Imię: {self.Imie}, Nazwisko: {self.Nazwisko}"
 
-    @staticmethod
     def utworzKlienta(Id, Imie, Nazwisko):
         connectToDatabase()
         parametry = (Id, Imie, Nazwisko)
@@ -146,7 +147,6 @@ class Klient:
         cursor.execute(zapytanie, parametry)
         connect.commit()
 
-    @staticmethod
     def obslugaKlienta(imie, nazwisko):
         connectToDatabase()
         parametry = (imie, nazwisko)
@@ -172,27 +172,31 @@ teatr = Teatr()
 root = tkinter.Tk()
 root.title("Rezerwacja miejsc w teatrze")
 root.geometry("500x500")
+#dodanie scroll
+text = ScrolledText(root, state='disable')
+text.pack(fill='both', expand=True)
+frame = tkinter.Frame(text)
+text.window_create('1.0', window=frame)
 
 #logowanie użytkownika
-labelUserName = tkinter.Label(root, text="Podaj imię")
+labelUserName = tkinter.Label(frame, text="Podaj imię")
 labelUserName.pack(pady=10)
-userNameEntry = tkinter.Entry(root)
+userNameEntry = tkinter.Entry(frame)
 userNameEntry.pack()
-labelUserLastName = tkinter.Label(root, text="Podaj nazwisko")
+labelUserLastName = tkinter.Label(frame, text="Podaj nazwisko")
 labelUserLastName.pack(pady=10)
-userLastNameEntry = tkinter.Entry(root)
+userLastNameEntry = tkinter.Entry(frame)
 userLastNameEntry.pack()
 
-
-def hide1():
+#wyświetlanie i ukrycie pól
+def pola():
+    #ukrycie pól po logowaniu
     labelUserName.pack_forget()
     userNameEntry.pack_forget()
     labelUserLastName.pack_forget()
     userLastNameEntry.pack_forget()
     klientButton.pack_forget()
-
-
-def poLogowaniu():
+    #wyświetlenie pól po logowaniu
     miejscaButton.pack(pady=20)
     labelMiejsce.pack()
     miejsceEntry.pack()
@@ -202,21 +206,19 @@ def poLogowaniu():
     miejsceAnulowanieEntry.pack()
     anulujButton.pack(pady=20)
 
-
 def pobierzDane():
     # pobieranie informacji o uzytkowniku
     givenName = str(userNameEntry.get())
     givenLastName = str(userLastNameEntry.get())
     Klient.obslugaKlienta(givenName, givenLastName)
-    hide1()
     # wyświetlenie informacji o zalogowanym użytkowniku
     givenInfo = aktualnyKlient
-    labelUserInfo = tkinter.Label(root, text=givenInfo)
+    labelUserInfo = tkinter.Label(frame, text=givenInfo)
     labelUserInfo.pack()
-    poLogowaniu()
+    pola()
 
 
-klientButton = tkinter.Button(root, text="Logowanie", command=pobierzDane)
+klientButton = tkinter.Button(frame, text="Logowanie", command=pobierzDane)
 klientButton.pack()
 
 
@@ -226,24 +228,25 @@ def pokazDostepneMiesjca():
     wydrukujListe = ""
     for row in pokazListe:
         wydrukujListe += (str(row) + " " + "\n")
-    labelListaMiejsc = tkinter.Label(root, text=wydrukujListe)
-    labelTitleListaMiejsc = tkinter.Label(root, text="Lista dostępnych miejsc w teatrze")
+    labelListaMiejsc = tkinter.Label(frame, text=wydrukujListe)
+    labelTitleListaMiejsc = tkinter.Label(frame, text="Lista dostępnych miejsc w teatrze")
     labelTitleListaMiejsc.pack()
     labelListaMiejsc.pack()
 
 
-miejscaButton = tkinter.Button(root, text="Pokaż dostępne miejsca", command=pokazDostepneMiesjca)
+miejscaButton = tkinter.Button(frame, text="Pokaż dostępne miejsca", command=pokazDostepneMiesjca)
 
 #rezerwacja miejsc
-labelMiejsce = tkinter.Label(root, text="Podaj nr miejsca do rezerwacji")
-miejsceEntry = tkinter.Entry(root)
+labelMiejsce = tkinter.Label(frame, text="Podaj nr miejsca do rezerwacji")
+miejsceEntry = tkinter.Entry(frame)
 
 def rezerwuj():
     givenMiejsce = str(miejsceEntry.get())
     teatr.zarezerwujMiejsce(givenMiejsce, aktualnyKlient.Id)
 
 
-rezerwujButton = tkinter.Button(root, text="Zarezerwuj wskazane miejsce", command=rezerwuj)
+
+rezerwujButton = tkinter.Button(frame, text="Zarezerwuj wskazane miejsce", command=rezerwuj)
 
 
 #historia rezerwacji miejsc
@@ -253,17 +256,17 @@ def historia():
     wydrukujRezerwacje = ""
     for row in pokazRezerwacje:
         wydrukujRezerwacje += (str(row) + " " + "\n")
-    labelHistoria = tkinter.Label(root, text=wydrukujRezerwacje)
-    labelTitleHistoria = tkinter.Label(root, text="Lista rezerwacji")
+    labelHistoria = tkinter.Label(frame, text=wydrukujRezerwacje)
+    labelTitleHistoria = tkinter.Label(frame, text="Lista rezerwacji")
     labelTitleHistoria.pack()
     labelHistoria.pack()
 
 
-historiaButton = tkinter.Button(root, text="Pokaż historię rezerwacji miejsc", command=historia)
+historiaButton = tkinter.Button(frame, text="Pokaż historię rezerwacji miejsc", command=historia)
 
 #anulowanie rezerwacji
-labelMiejsceAnulowanie = tkinter.Label(root, text="Podaj nr miejsca do anulowania")
-miejsceAnulowanieEntry = tkinter.Entry(root)
+labelMiejsceAnulowanie = tkinter.Label(frame, text="Podaj nr miejsca do anulowania")
+miejsceAnulowanieEntry = tkinter.Entry(frame)
 
 
 def anuluj():
@@ -271,24 +274,24 @@ def anuluj():
     teatr.anulowanieRezerwacji(givenMiejsceAnulowanie)
 
 
-anulujButton = tkinter.Button(root, text="Anulowanie rezerwacji", command=anuluj)
+anulujButton = tkinter.Button(frame, text="Anulowanie rezerwacji", command=anuluj)
 
 #powtarzanie kodu w pętli
-root.mainloop()
+frame.mainloop()
 
-#Wyszukanie klienta/Utworzenie klienta
-print("Id klienta")
-Klient.obslugaKlienta("Anna", "Kow")
-
-#Pokazanie dostępnych miejsc
-print("Dostępne miejsca w teatrze")
-dostepneMiejsca = teatr.dostepneMiejsca()
-
+# #Wyszukanie klienta/Utworzenie klienta
+# print("Id klienta")
+# Klient.obslugaKlienta("Anna", "Kow")
+#
+# #Pokazanie dostępnych miejsc
+# print("Dostępne miejsca w teatrze")
+# dostepneMiejsca = teatr.dostepneMiejsca()
+#
 #Rezerwacja miejsca
-teatr.zarezerwujMiejsce(12, 101)
-
-#Historia rezerwacji
-teatr.historiaRezerwacji(101)
-
-#Anulowanie rezerwacji
-teatr.anulowanieRezerwacji(12)
+# teatr.zarezerwujMiejsce(12, 101)
+#
+# #Historia rezerwacji
+# teatr.historiaRezerwacji(101)
+#
+# #Anulowanie rezerwacji
+# teatr.anulowanieRezerwacji(12)

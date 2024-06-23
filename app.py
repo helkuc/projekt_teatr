@@ -77,8 +77,6 @@ class Teatr:
                 self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[3]))
             elif row[5] == "NP":
                 self.listaMiejsc.append(MiejsceVIP(row[0], row[1], row[2], row[4]))
-        for miejsce in self.listaMiejsc:
-            print(miejsce)
         return self.listaMiejsc
 
     def zarezerwujMiejsce(self, numerMiejsca, klient):
@@ -130,8 +128,6 @@ class Teatr:
         self.rezerwacje = []
         for row in dane:
             self.rezerwacje.append(f"Id rezerwacji {row[0]}, zarezerwowane miejsce nr {row[5]}, data rezerwacji {row[1]}, data aktualizacji rezerwacji {row[2]}, status rezerwacji: {row[3]}")
-        for rezerwacja in self.rezerwacje:
-            print(rezerwacja)
         return self.rezerwacje
 
 
@@ -144,7 +140,6 @@ class Klient:
     def __str__(self):
         return f"Id klienta: {self.Id}, Imię: {self.Imie}, Nazwisko: {self.Nazwisko}"
 
-    @staticmethod
     def utworzKlienta(Id, Imie, Nazwisko):
         connectToDatabase()
         parametry = (Id, Imie, Nazwisko)
@@ -152,7 +147,6 @@ class Klient:
         cursor.execute(zapytanie, parametry)
         connect.commit()
 
-    @staticmethod
     def obslugaKlienta(imie, nazwisko):
         connectToDatabase()
         parametry = (imie, nazwisko)
@@ -178,10 +172,9 @@ teatr = Teatr()
 root = tkinter.Tk()
 root.title("Rezerwacja miejsc w teatrze")
 root.geometry("500x500")
-
+#dodanie scroll
 text = ScrolledText(root, state='disable')
 text.pack(fill='both', expand=True)
-
 frame = tkinter.Frame(text)
 text.window_create('1.0', window=frame)
 
@@ -195,16 +188,15 @@ labelUserLastName.pack(pady=10)
 userLastNameEntry = tkinter.Entry(frame)
 userLastNameEntry.pack()
 
-
-def hide1():
+#wyświetlanie i ukrycie pól
+def pola():
+    #ukrycie pól po logowaniu
     labelUserName.pack_forget()
     userNameEntry.pack_forget()
     labelUserLastName.pack_forget()
     userLastNameEntry.pack_forget()
     klientButton.pack_forget()
-
-
-def poLogowaniu():
+    #wyświetlenie pól po logowaniu
     miejscaButton.pack(pady=20)
     labelMiejsce.pack()
     miejsceEntry.pack()
@@ -214,18 +206,16 @@ def poLogowaniu():
     miejsceAnulowanieEntry.pack()
     anulujButton.pack(pady=20)
 
-
 def pobierzDane():
     # pobieranie informacji o uzytkowniku
     givenName = str(userNameEntry.get())
     givenLastName = str(userLastNameEntry.get())
     Klient.obslugaKlienta(givenName, givenLastName)
-    hide1()
     # wyświetlenie informacji o zalogowanym użytkowniku
     givenInfo = aktualnyKlient
     labelUserInfo = tkinter.Label(frame, text=givenInfo)
     labelUserInfo.pack()
-    poLogowaniu()
+    pola()
 
 
 klientButton = tkinter.Button(frame, text="Logowanie", command=pobierzDane)

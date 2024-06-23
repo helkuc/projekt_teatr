@@ -276,19 +276,19 @@ anulujButton = tkinter.Button(root, text="Anulowanie rezerwacji", command=anuluj
 #powtarzanie kodu w pętli
 root.mainloop()
 
-#Wyszukanie klienta/Utworzenie klienta
-print("Id klienta")
-Klient.obslugaKlienta("Anna", "Kow")
-
-#Pokazanie dostępnych miejsc
-print("Dostępne miejsca w teatrze")
-dostepneMiejsca = teatr.dostepneMiejsca()
-
-#Rezerwacja miejsca
-teatr.zarezerwujMiejsce(12, 101)
-
-#Historia rezerwacji
-teatr.historiaRezerwacji(101)
-
-#Anulowanie rezerwacji
-teatr.anulowanieRezerwacji(12)
+# #Wyszukanie klienta/Utworzenie klienta
+# print("Id klienta")
+# Klient.obslugaKlienta("Anna", "Kow")
+#
+# #Pokazanie dostępnych miejsc
+# print("Dostępne miejsca w teatrze")
+# dostepneMiejsca = teatr.dostepneMiejsca()
+#
+# #Rezerwacja miejsca
+# teatr.zarezerwujMiejsce(12, 101)
+#
+# #Historia rezerwacji
+# teatr.historiaRezerwacji(101)
+#
+# #Anulowanie rezerwacji
+# teatr.anulowanieRezerwacji(12)

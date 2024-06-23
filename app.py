@@ -8,7 +8,7 @@ import tkinter.messagebox as messagebox
 
 #połączanie z bazą danych
 def connectToDatabase():
-    config = {"user": "root", "password": "Rozilka89!!!", "host": "localhost", "database": "teatr"}
+    config = {"user": "root", "password": "XXX", "host": "localhost", "database": "teatr"}
     global connect
     connect = mysql.connector.connect(**config)
     global cursor
